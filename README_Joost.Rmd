@@ -117,9 +117,14 @@ my_theme =
 	)
 
 
+# loading this summarized experiment object doesn't work for me - needs to load from dev branch? only have main forked.. 
 # counts_SE = here("dev/counts_SE.rda") |> load()
-counts_SE = here("counts_SE.rda") |> load()
-tibble_counts = counts_SE %>% tidybulk() %>% as_tibble()
+# counts_SE = here("counts_SE.rda") |> load()
+# tibble_counts = counts_SE %>% tidybulk() %>% as_tibble()
+
+# can load se_mini which is used in introduction.Rmd - proceed running functions with se_mini 
+data(se_mini)
+tibble_counts.se_mini = tidybulk::se_mini |> tidybulk() |> as_tibble()
 
 ```
 
@@ -513,18 +518,22 @@ se_mini.counts.norm.MDS.rotated %>%
 ```
 
 
-TO DO...
-
 ## Test `differential abundance`
 
 We may want to test for differential transcription between sample-wise factors of interest (e.g., with edgeR). `test_differential_abundance` takes a tibble, column names (as symbols; for `sample`, `transcript` and `count`) and a formula representing the desired linear model as arguments and returns a tibble with additional columns for the statistics from the hypothesis test (e.g.,  log fold change, p-value and false discovery rate).
 <div class="column-left">
 TidyTranscriptomics
 ```{r de, cache=TRUE, message=FALSE, warning=FALSE, results='hide'}
-counts_SE.de =
-	counts_SE %>%
+# counts_SE.de =
+# 	counts_SE %>%
+# 	test_differential_abundance( ~ condition, action="get")
+# counts_SE.de
+
+se_mini.de =
+	se_mini %>%
 	test_differential_abundance( ~ condition, action="get")
-counts_SE.de
+se_mini.de
+
 ```
 </div>
 <div class="column-right">
@@ -544,6 +553,8 @@ topTags(qlf, n=Inf)
 ```
 </div>
 <div style="clear:both;"></div>
+
+TO DO... check out rest...
 
 The functon `test_differential_abundance` operated with contrasts too. The constrasts hve the name of the design matrix (generally <NAME_COLUMN_COVARIATE><VALUES_OF_COVARIATE>)
 ```{r de contrast, cache=TRUE, message=FALSE, warning=FALSE, results='hide', eval=FALSE}
