@@ -20,3 +20,6 @@ egsea_report_*
 /doc/
 _targets.R
 _targets*
+tidybulk_Joost.RData
+Manuscript_diff_feature_abundance_Joost.RData
+tidybulk_joost.Rproj
