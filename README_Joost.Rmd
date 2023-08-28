@@ -46,6 +46,7 @@ gate information to your tibble
 
 ```{r, echo=FALSE, out.width = "800px"}
 knitr::include_graphics("man/figures/new_SE_usage-01.png")
+
 ```
 
 
