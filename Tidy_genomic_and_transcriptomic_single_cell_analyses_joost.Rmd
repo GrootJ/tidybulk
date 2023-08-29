@@ -82,7 +82,15 @@ the workshop slot):
 2. [Introduction to tidy genomics](https://github.com/tidybiology/tidy-genomics-talk/blob/main/tidy-genomics-talk.pdf)
 
 ```{r message = FALSE}
-BiocManager::install(c("SingleCellExperiment)"))
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+# The following initializes usage of Bioc devel
+BiocManager::install(version='devel')
+
+BiocManager::install("SingleCellExperiment")
+BiocManager::install("BiocGenerics")
+BiocManager::install("DESeq2")
 ```
 
 # Part 1 Introduction to tidySingleCellExperiment
