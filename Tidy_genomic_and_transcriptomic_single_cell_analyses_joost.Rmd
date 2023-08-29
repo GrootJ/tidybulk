@@ -82,15 +82,22 @@ the workshop slot):
 2. [Introduction to tidy genomics](https://github.com/tidybiology/tidy-genomics-talk/blob/main/tidy-genomics-talk.pdf)
 
 ```{r message = FALSE}
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-# The following initializes usage of Bioc devel
-BiocManager::install(version='devel')
+# if (!require("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# 
+# # The following initializes usage of Bioc devel
+# BiocManager::install(version='devel')
 
 BiocManager::install("SingleCellExperiment")
-BiocManager::install("BiocGenerics")
-BiocManager::install("DESeq2")
+BiocManager::install("dittoSeq")
+# BiocManager::install("BiocGenerics")
+# BiocManager::install("DESeq2")
+BiocManager::install("tidySingleCellExperiment")
+
+TO DO
+# BiocManager::install("batchelor")
+# BiocManager::install("scater")
+
 ```
 
 # Part 1 Introduction to tidySingleCellExperiment
@@ -116,8 +123,9 @@ format. This data is peripheral blood mononuclear cells (PBMCs) from
 metastatic breast cancer patients.
 
 ```{r}
+# list.files('/Users/joostgroot/Work_local/projects/tidybulk_joost/tidyomicsWorkshopBioc2023/data/')
 # load single cell RNA sequencing data
-sce_obj <- tidyomicsWorkshopBioc2023::sce_obj
+load("~/Work_local/projects/tidybulk_joost/tidyomicsWorkshopBioc2023/data/sce_obj.rda")
 
 # take a look
 sce_obj
@@ -318,6 +326,8 @@ they were familiar with, and to customise the plot with great
 flexibility. 
 
 ```{r}
+# load("~/Work_local/projects/tidybulk_joost/tidyomicsWorkshopBioc2023/data/theme_multipanel.rda")
+
 sce_scored |>
     
   # plot cells with high score last so they're not obscured by other cells
@@ -326,7 +336,7 @@ sce_scored |>
   ggplot(aes(UMAP_1, UMAP_2, color = signature_score)) +
   geom_point() +
   scale_color_distiller(palette = "Spectral") +
-  tidyomicsWorkshopBioc2023::theme_multipanel
+  theme_multipanel
 ```
 
 For exploratory analyses, we can select the gamma delta T cells, the
