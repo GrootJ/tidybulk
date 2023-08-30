@@ -93,8 +93,15 @@ BiocManager::install("dittoSeq")
 # BiocManager::install("BiocGenerics")
 # BiocManager::install("DESeq2")
 BiocManager::install("tidySingleCellExperiment")
+# .rs.restartR()
 
-TO DO
+# # clean up package environment
+# remove.packages("SingleCellExperiment") 
+# remove.packages("dittoSeq")
+# remove.packages("tidySingleCellExperiment")
+# .rs.restartR()
+
+# TO DO
 # BiocManager::install("batchelor")
 # BiocManager::install("scater")
 
