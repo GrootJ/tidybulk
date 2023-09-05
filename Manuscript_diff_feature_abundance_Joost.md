@@ -1,0 +1,203 @@
+add renv for tracking package management - done after version controlled
+notebook initiated and run only execute once
+
+after snapshot choose option 2: Install the packages, then snapshot.
+
+note that renv sets the libpaths to project local
+
+install bunch of packages not captured by renv::snapshot() installation
+execute only once
+
+    install.packages("tidyverse")
+    install.packages("ggrepel")
+    install.packages("GGally")
+    # install.packages("nanny")
+
+same with required bioconductor packages execute only once
+
+    if (!require("BiocManager", quietly = TRUE))
+        install.packages("BiocManager")
+    BiocManager::install("ComplexHeatmap") # necessary for tidyheatmap
+    BiocManager::install("tidyHeatmap")
+    BiocManager::install("pasilla")
+    BiocManager::install("sva")  # necessary for Combat which was used for adjustment for unwanted variation
+    BiocManager::install("preprocessCore")
+    BiocManager::install("tidybulk")
+
+    BiocManager::valid() # check whether installed bioconductor packages are in good status
+    BiocManager::install() # upgrade installed bioconductor packages (where necessary)
+
+note that the code below is from notebook Manuscript code -
+transcriptional signature identification
+<http://127.0.0.1:16527/library/tidybulk/doc/manuscript_transcriptional_signatures.html>
+
+# Data
+
+    pasCts = system.file("extdata",
+                                             "pasilla_gene_counts.tsv",
+                                             package = "pasilla",
+                                             mustWork = TRUE)
+    pasAnno = system.file(
+        "extdata",
+        "pasilla_sample_annotation.csv",
+        package = "pasilla",
+        mustWork = TRUE
+    )
+    cts = as.matrix(read.csv(pasCts, sep = "\t", row.names = "gene_id"))
+    coldata = read.csv(pasAnno, row.names = 1)
+    coldata = coldata[, c("condition", "type")]
+
+    # Create tidybulk object
+    counts =
+        cts %>%
+        as_tibble(rownames = "feature") %>%
+        pivot_longer(names_to = "sample",
+                                 values_to = "count",
+                                 cols = -feature) %>%
+        left_join(
+            coldata %>%
+            as_tibble(rownames = "sample") %>%
+            mutate(sample = gsub("fb", "", sample))
+        ) %>%
+        mutate_if(is.character, as.factor)
+
+# Create a tt object with unique raw and normalised counts
+
+    tt_scaled <- 
+        tidybulk(counts, sample, feature, count) %>%
+        aggregate_duplicates() %>%
+        identify_abundant() %>%
+        scale_abundance()
+
+    # Plot count densities
+    tt_scaled %>%
+        pivot_longer(
+            c(count, count_scaled),
+            values_to = "count", 
+            names_to = "Normalisation"
+        ) %>%
+        ggplot(aes(count + 1, group=sample, color=type)) +
+        facet_grid(~Normalisation) +
+        geom_density() +
+        scale_x_log10()
+
+![](Manuscript_diff_feature_abundance_Joost_files/figure-markdown_strict/unnamed-chunk-10-1.png)
+
+    # Reduce data dimensionality with arbitrary number of dimensions
+    tt_mds <- tt_scaled %>% reduce_dimensions(method="MDS", .dims = 3)
+
+    # Plot all-vs-all MDS dimensions 
+    tt_mds %>%
+        pivot_sample() %>%
+        GGally::ggpairs(columns = 7:9, ggplot2::aes(colour=condition))
+
+![](Manuscript_diff_feature_abundance_Joost_files/figure-markdown_strict/unnamed-chunk-11-1.png)
+
+# Adjust for visualisation
+
+    # Adjust for visualisation
+    tt_adj <- tt_mds %>% adjust_abundance(~ condition + type)
+
+    # Visualise the association between reduced dimensions and factors
+    tt_mds_adj_mds <- 
+        tt_adj %>%
+        filter( count_scaled_adjusted %>% is.na %>% `!`) %>%
+
+        # Calculate reduced dimensions on the adjusted counts as well
+        reduce_dimensions(
+           .abundance = count_scaled_adjusted, 
+           method="MDS", .dim = 3
+        )
+
+    # NOTE tidybulk said it required combat for adjust_abundance - then installed sva (package w Combat) and used it for adjustment for unwanted variation
+
+NOTE tidybulk said it required combat for adjust\_abundance - then
+installed sva (package w Combat) and used it for adjustment for unwanted
+variation so adjust\_abundance does a batch correction on type (single
+vs paired end reads) in this case
+
+documentation of adjust\_abundance does mention combat now - how it is
+implemented could use further clarification (and when to use it)
+
+# Data manipulation and visualisation
+
+    tt_mds_adj_mds %>%
+        pivot_sample() %>%
+
+        # First level reshaping
+        pivot_longer(contains("Dim"), names_to = "Dim", values_to = ".value")   %>%
+        separate(Dim, c("Dim", "Adj"), sep="\\.") %>%
+        mutate(Adj = ifelse(Adj == "y", "non", "adj") %>% factor(c("scaled", "adj"))) %>%
+
+        # Second level reshaping
+        pivot_longer(c(type, condition), names_to = "covar", values_to = "which") %>%
+
+        # Visualise the integrative plot
+        ggplot(aes(y = .value, x = covar, fill = `which`)) +
+        geom_boxplot() +
+        facet_grid(Adj ~ Dim)
+
+![](Manuscript_diff_feature_abundance_Joost_files/figure-markdown_strict/unnamed-chunk-13-1.png)
+
+    tt_test <- tt_adj %>% test_differential_abundance(~ condition + type)
+
+it seems single and paired reads still considered separately.. TO DO -
+figure this out..
+
+    # MA plot
+    tt_test %>%
+            keep_abundant() %>%
+          pivot_transcript() %>%
+
+        # Subset data
+        mutate(significant = FDR<0.05 & abs(logFC) >=2) %>%
+        mutate(feature = ifelse(significant, as.character(feature), NA)) %>%
+
+        # Plot
+        ggplot(aes(x = logCPM, y = logFC, label=feature)) +
+        geom_point(aes(color = significant, size = significant, alpha=significant)) +
+        geom_text_repel() +
+        scale_color_manual(values=c("black", "#e11f28")) +
+        scale_size_discrete(range = c(0, 2))
+
+![](Manuscript_diff_feature_abundance_Joost_files/figure-markdown_strict/unnamed-chunk-15-1.png)
+
+     tt_test %>%
+
+         # Select top genes and reshape data
+         inner_join( arrange((.), PValue) %>% distinct(feature) %>% head(6)) %>%
+
+         # High level reshaping of the data.
+         # All three count columns are shaped as two columns:
+         # (i) the columns name and (ii) the value of those columns
+         pivot_longer(
+            c(count, count_scaled, count_scaled_adjusted),
+            names_to = "Stage", values_to = "count"
+         ) %>%
+
+         # This allows the faceted plot
+         ggplot(aes(x = Stage, y = count + 1, fill = condition)) +
+            geom_boxplot() +
+         facet_wrap(~feature) +
+         scale_y_log10()
+
+     # Heatmap
+     tt_test %>%
+            as_tibble() %>%
+
+         # Select differentially abundant
+         filter(FDR < 0.05 & abs(logFC) > 2) %>%
+
+         # Plot
+         heatmap( feature, sample, count_scaled_adjusted) %>%
+         add_tile(condition) %>%
+         add_tile(type)
+
+snapshot libraries installed and display sessionInfo for
+renv::snapshot() chose for option 1: Snapshot, just using the currently
+installed packages. snapshot extensively looks for required packages -
+not all are necessary for this notebook..
+
+render notebook to html
+
+    rmarkdown::render("Manuscript_diff_feature_abundance_Joost.Rmd")

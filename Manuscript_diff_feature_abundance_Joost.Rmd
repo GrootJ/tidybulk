@@ -1,6 +1,8 @@
 ---
 title: "tidybulk Manuscript code - differential feature abundance"
-output: html_document
+output:
+  html_notebook: default
+  github_document: default
 ---
 
 ```{r echo=FALSE}
@@ -16,14 +18,52 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
 # tidySeurat paper = https://academic.oup.com/bioinformatics/article/37/22/4100/6283576
 ```
 
-# install some new required packages from Bioconductor - only once
+add renv for tracking package management - done after version controlled notebook initiated and run
+only execute once
+
+```{r, eval=FALSE, echo=FALSE}
+renv::activate()
+renv::snapshot()
+```
+
+after snapshot choose option 2: Install the packages, then snapshot.
+
+note that renv sets the libpaths to project local
+
+```{r, eval=FALSE, echo=FALSE}
+.libPaths()
+```
+
+install bunch of packages not captured by renv::snapshot() installation
+execute only once
 
 ```{r eval=FALSE}
-# BiocManager::install("ComplexHeatmap") # necessary for tidyheatmap
-# BiocManager::install("tidyHeatmap")
-# BiocManager::install("pasilla")
-# BiocManager::install("sva")  # necessary for Combat which was used for adjustment for unwanted variation
+install.packages("tidyverse")
+install.packages("ggrepel")
+install.packages("GGally")
+# install.packages("nanny")
 ```
+
+same with required bioconductor packages
+execute only once
+
+```{r eval=FALSE}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("ComplexHeatmap") # necessary for tidyheatmap
+BiocManager::install("tidyHeatmap")
+BiocManager::install("pasilla")
+BiocManager::install("sva")  # necessary for Combat which was used for adjustment for unwanted variation
+BiocManager::install("preprocessCore")
+BiocManager::install("tidybulk")
+
+BiocManager::valid() # check whether installed bioconductor packages are in good status
+BiocManager::install() # upgrade installed bioconductor packages (where necessary)
+```
+
+
+note that the code below is from notebook Manuscript code - transcriptional signature identification 
+http://127.0.0.1:16527/library/tidybulk/doc/manuscript_transcriptional_signatures.html
 
 
 ```{r, echo=FALSE, include=FALSE, }
@@ -187,7 +227,9 @@ tt_mds_adj_mds <-
 
 NOTE tidybulk said it required combat for adjust_abundance - then installed sva (package w Combat) and used it for adjustment for unwanted variation
 so adjust_abundance does a batch correction on type (single vs paired end reads) in this case
-the documentation of adjust_abundance is not very clear on this - perhaps also reference to combat should be in there
+
+documentation of adjust_abundance does mention combat now - how it is implemented could use further clarification (and when to use it)
+
 
 # Data manipulation and visualisation 
 
@@ -276,3 +318,21 @@ tt_test %>%
      add_tile(condition) %>%
      add_tile(type)
 ```
+
+snapshot libraries installed and display sessionInfo
+for renv::snapshot() chose for option 1: Snapshot, just using the currently installed packages.
+snapshot extensively looks for required packages - not all are necessary for this notebook..
+
+```{r, eval=FALSE}
+renv::snapshot()
+sessionInfo()
+```
+
+render notebook to html for local rendered output check
+and to github_document to check into github
+
+```{r, eval=FALSE, results='hide', warning=FALSE}
+rmarkdown::render("Manuscript_diff_feature_abundance_Joost.Rmd")
+```
+
+
