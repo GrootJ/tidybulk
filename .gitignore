@@ -23,5 +23,9 @@ _targets*
 tidybulk_Joost.RData
 Manuscript_diff_feature_abundance_Joost.RData
 tidybulk_joost.Rproj
-tidyomicsWorkshopBioc2023
 .DS_Store
+Manuscript_diff_feature_abundance_Joost.nb.html
+Manuscript_diff_feature_abundance_Joost_cache
+Manuscript_diff_feature_abundance_Joost_files
+renv
+.Rprofile
