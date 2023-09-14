@@ -1,8 +1,12 @@
 ---
 title: "tidybulk Manuscript code - differential feature abundance"
+<<<<<<< HEAD
 output:
   html_notebook: default
   github_document: default
+=======
+output: html_document
+>>>>>>> master
 ---
 
 ```{r echo=FALSE}
@@ -18,6 +22,7 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
 # tidySeurat paper = https://academic.oup.com/bioinformatics/article/37/22/4100/6283576
 ```
 
+<<<<<<< HEAD
 add renv for tracking package management - done after version controlled notebook initiated and run
 only execute once
 
@@ -80,6 +85,25 @@ library(tidyverse) # added to supersede/simplify tibble dplyr magrittr requireme
 # library(magrittr)
 # library(tibble)
 # library(dplyr) # already loaded via GGally
+=======
+# install some new required packages from Bioconductor - only once
+
+```{r eval=FALSE}
+# BiocManager::install("ComplexHeatmap") # necessary for tidyheatmap
+# BiocManager::install("tidyHeatmap")
+# BiocManager::install("pasilla")
+# BiocManager::install("sva")  # necessary for Combat which was used for adjustment for unwanted variation
+```
+
+
+```{r, echo=FALSE, include=FALSE, }
+# 
+options(pillar.min_title_chars = Inf)
+library(magrittr)
+library(tibble)
+library(dplyr)
+library(magrittr)
+>>>>>>> master
 library(tidyr)
 library(ggplot2)
 library(rlang)
@@ -147,7 +171,11 @@ my_theme =
 ```
 
 
+<<<<<<< HEAD
 # Data - is from pasilla dataset
+=======
+# Data
+>>>>>>> master
 
 ```{r}
 pasCts = system.file("extdata",
@@ -202,9 +230,12 @@ tt_scaled %>%
     scale_x_log10()
 ```
 
+<<<<<<< HEAD
 paired end has lower density is logical (sequence from other end of insert on flowcell clusters is more likely to yield less (complete) sequences)
 depending on flowcell(s) design single end alignment (or SE k-mer counting) could provide a technical solution for the single vs paired end differences
 
+=======
+>>>>>>> master
 ```{r}
 # Reduce data dimensionality with arbitrary number of dimensions
 tt_mds <- tt_scaled %>% reduce_dimensions(method="MDS", .dims = 3)
@@ -232,6 +263,7 @@ tt_mds_adj_mds <-
        method="MDS", .dim = 3
     )
 
+<<<<<<< HEAD
 ```
 
 NOTE tidybulk said it required combat in the adjust_abundance function - then installed sva (package w Combat) and used it for adjustment for unwanted variation
@@ -241,6 +273,14 @@ a first idea for an example would be multi-site data (maybe TCGA lung squamous v
 
 update: the documentation of adjust_abundance does have reference to combat..
 
+=======
+# NOTE tidybulk said it required combat for adjust_abundance - then installed sva (package w Combat) and used it for adjustment for unwanted variation
+```
+
+NOTE tidybulk said it required combat for adjust_abundance - then installed sva (package w Combat) and used it for adjustment for unwanted variation
+so adjust_abundance does a batch correction on type (single vs paired end reads) in this case
+the documentation of adjust_abundance is not very clear on this - perhaps also reference to combat should be in there
+>>>>>>> master
 
 # Data manipulation and visualisation 
 
@@ -263,20 +303,28 @@ tt_mds_adj_mds %>%
     facet_grid(Adj ~ Dim)
 ```
 
+<<<<<<< HEAD
 should the bottom "NA" be the adjusted data? 
 there differences between paired and single end seem to have been "corrected" and signal of treated vs untreated on PC1 shows more clear separation..
+=======
+>>>>>>> master
 
 ```{r}
 tt_test <- tt_adj %>% test_differential_abundance(~ condition + type)
 
 ```
 
+<<<<<<< HEAD
 type (read type) is used as covariate - as test_differential_abundance takes in raw count data (does its own correction, normalization)
 this makes sense - perhaps for workflow clarity rename tt_adj (so it does not look like it has ONLY adjusted data)
 sorry if this sounds critical - just trying to understand the workflow, and if it could be used as example workflow..
 
 the result message above does clarify how test_differential_abundance is run - which is good
 
+=======
+it seems single and paired reads still considered separately..
+TO DO - figure this out..
+>>>>>>> master
 
 ```{r}
 
@@ -321,6 +369,10 @@ tt_test %>%
 ```
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
 ```{r, eval=FALSE}
  # Heatmap
  tt_test %>%
@@ -334,6 +386,7 @@ tt_test %>%
      add_tile(condition) %>%
      add_tile(type)
 ```
+<<<<<<< HEAD
 
 heatmap does not seem to provide right visual for DE genes - perhaps a scaling error?
 
@@ -356,3 +409,5 @@ rmarkdown::render("Manuscript_diff_feature_abundance_Joost.Rmd")
 ```
 
 
+=======
+>>>>>>> master
