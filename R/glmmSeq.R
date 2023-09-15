@@ -185,7 +185,7 @@ glmmSeq = function (modelFormula, countdata, metadata, id = NULL, dispersion = N
   fullFormula <- update.formula(modelFormula, count ~ ., simplify = FALSE)
   subFormula <- lme4::subbars(modelFormula)
   variables <- rownames(attr(terms(subFormula), "factors"))
-  subsetMetadata <- metadata[, variables]
+  subsetMetadata <- metadata[, variables, drop=FALSE]
   if (is.null(id)) {
     fb <- lme4::findbars(modelFormula)
     id <- sub(".*[|]", "", fb)
@@ -195,16 +195,16 @@ glmmSeq = function (modelFormula, countdata, metadata, id = NULL, dispersion = N
   if (removeSingles) {
     nonSingles <- names(table(ids))[table(ids) > 1]
     nonSingleIDs <- ids %in% nonSingles
-    countdata <- countdata[, nonSingleIDs]
+    countdata <- countdata[, nonSingleIDs, drop=FALSE]
     sizeFactors <- sizeFactors[nonSingleIDs]
-    subsetMetadata <- subsetMetadata[nonSingleIDs, ]
+    subsetMetadata <- subsetMetadata[nonSingleIDs, , drop=FALSE]
     ids <- ids[nonSingleIDs]
   }
   if (!is.null(sizeFactors))
     offset <- log(sizeFactors)
   else offset <- NULL
   if (verbose)
-    cat(paste0("\nn = ", length(ids), " samples, ", length(unique(ids)),
+    message(paste0("\nn = ", length(ids), " samples, ", length(unique(ids)),
                " individuals\n"))
   FEformula <- lme4::nobars(modelFormula)
   if (is.null(modelData)) {
@@ -454,7 +454,7 @@ glmmSeq = function (modelFormula, countdata, metadata, id = NULL, dispersion = N
   if (method == "lme4") {
     if (sum(!noErr) != 0) {
       if (verbose)
-        cat(paste("Errors in", sum(!noErr), "gene(s):",
+        message(paste("Errors in", sum(!noErr), "gene(s):",
                   paste(names(noErr)[!noErr], collapse = ", ")))
       outputErrors <- vapply(resultList[!noErr], function(x) {
         x$tryErrors
@@ -468,7 +468,7 @@ glmmSeq = function (modelFormula, countdata, metadata, id = NULL, dispersion = N
     err <- is.na(s$res[, "AIC"])
     if (any(err)) {
       if (verbose)
-        cat(paste("Errors in", sum(err), "gene(s):",
+        message(paste("Errors in", sum(err), "gene(s):",
                   paste(names(err)[err], collapse = ", ")))
       outputErrors <- vapply(resultList[err], function(x) {
         x$message
