@@ -247,7 +247,7 @@ setMethod("scale_abundance",
                                .sample = NULL,
                                .transcript = NULL,
                                .abundance = NULL,
-                               .subset_for_scaling = NULL,
+                               method = "limma_normalize_quantiles",
                                action = NULL) {
 
 
@@ -255,7 +255,6 @@ setMethod("scale_abundance",
   . = NULL
 
   .abundance = enquo(.abundance)
-  .subset_for_scaling = enquo(.subset_for_scaling)
 
   # Set column name for value scaled
 
@@ -271,21 +270,62 @@ setMethod("scale_abundance",
   # Set column name for value scaled
   value_scaled = my_assay %>% paste0(scaled_string)
 
-  # Check if package is installed, otherwise install
-  if (find.package("limma", quiet = TRUE) %>% length %>% equals(0)) {
-    message("tidybulk says: Installing limma needed for analyses")
-    if (!requireNamespace("BiocManager", quietly = TRUE))
-      install.packages("BiocManager", repos = "https://cloud.r-project.org")
-    BiocManager::install("limma", ask = FALSE)
-  }
+  # Check if the matrix is empty and avoid error
+  if(.data |> assay(my_assay) |> dim() |> min() == 0)
+    .data_norm =
+      .data |>
+      assay(my_assay) |>
+      list() |>
+      setNames(value_scaled)
 
-  # Reformat input data set
-  .data_norm <-
-    .data %>%
-    assay(my_assay) |>
-    limma::normalizeQuantiles() |>
-    list() |>
-    setNames(value_scaled)
+  else if(tolower(method) == "limma_normalize_quantiles"){
+
+    # Check if package is installed, otherwise install
+    if (find.package("limma", quiet = TRUE) %>% length %>% equals(0)) {
+      message("tidybulk says: Installing limma needed for analyses")
+      if (!requireNamespace("BiocManager", quietly = TRUE))
+        install.packages("BiocManager", repos = "https://cloud.r-project.org")
+      BiocManager::install("limma", ask = FALSE)
+    }
+
+    .data_norm <-
+      .data %>%
+      assay(my_assay) |>
+      limma::normalizeQuantiles() |>
+      list() |>
+      setNames(value_scaled)
+
+  }
+  else if(tolower(method) == "preprocesscore_normalize_quantiles_use_target"){
+
+    # Check if package is installed, otherwise install
+    if (find.package("preprocessCore", quiet = TRUE) %>% length %>% equals(0)) {
+      message("tidybulk says: Installing preprocessCore needed for analyses")
+      if (!requireNamespace("BiocManager", quietly = TRUE))
+        install.packages("BiocManager", repos = "https://cloud.r-project.org")
+      BiocManager::install("preprocessCore", ask = FALSE)
+    }
+
+    .data_norm =
+      .data |>
+      assay(my_assay) |>
+      as.matrix()
+
+    .data_norm =
+      .data_norm |>
+      preprocessCore::normalize.quantiles.use.target(
+        target = preprocessCore::normalize.quantiles.determine.target(.data_norm)
+      )
+
+    colnames(.data_norm) = .data |> assay(my_assay) |> colnames()
+    rownames(.data_norm) = .data |> assay(my_assay) |> rownames()
+
+    .data_norm =
+      .data_norm |>
+      list() |>
+      setNames(value_scaled)
+
+  } else stop("tidybulk says: the methods must be limma_normalize_quantiles or preprocesscore")
 
   # Add the assay
   assays(.data) =  assays(.data) %>% c(.data_norm)
@@ -409,6 +449,8 @@ setMethod("cluster_elements",
 
 
 .reduce_dimensions_se = function(.data,
+                                 .abundance = NULL,
+
 																 method,
 																 .dims = 2,
 																 top = 500,
@@ -420,15 +462,18 @@ setMethod("cluster_elements",
   # Fix NOTEs
   . = NULL
 
+  .abundance = enquo(.abundance)
+
+  if(.abundance |> quo_is_symbolic()) my_assay = quo_name(.abundance)
+  else my_assay = get_assay_scaled_if_exists_SE(.data)
+
 	my_assay =
 		.data %>%
 
 		# Filter abundant if performed
 		filter_if_abundant_were_identified() %>%
 
-		assays() %>%
-		as.list() %>%
-		.[[get_assay_scaled_if_exists_SE(.data)]] %>%
+		assay(my_assay) %>%
 
 		# Filter most variable genes
 		keep_variable_transcripts_SE(top = top, transform = transform) %>%
@@ -901,7 +946,7 @@ setMethod("remove_redundancy",
 	    apply(2, pmax, 0)
 
 	} else {
-	  stop("tidybulk says: the argument \"method\" must be combat_seq, combat, or limma_remove_batch_effect")
+	  stop("tidybulk says: the argument \"method\" must be \"combat_seq\", \"combat\", or \"limma_remove_batch_effect\"")
 	}
 
 
@@ -1408,7 +1453,7 @@ such as batch effects (if applicable) in the formula.
 			),
 
 			# glmmseq
-			tolower(method) %in% c("glmmseq_lme4", "glmmseq_glmmTMB") ~ get_differential_transcript_abundance_glmmSeq_SE(
+			tolower(method) %in% c("glmmseq_lme4", "glmmseq_glmmtmb") ~ get_differential_transcript_abundance_glmmSeq_SE(
 			  .,
 			  .formula,
 			  .abundance = !!.abundance,
@@ -1423,7 +1468,7 @@ such as batch effects (if applicable) in the formula.
 			),
 
 			# Else error
-			TRUE ~  stop("tidybulk says: the only methods supported at the moment are \"edgeR_quasi_likelihood\" (i.e., QLF), \"edgeR_likelihood_ratio\" (i.e., LRT), \"limma_voom\", \"limma_voom_sample_weights\", \"DESeq2\"")
+			TRUE ~  stop("tidybulk says: the only methods supported at the moment are \"edgeR_quasi_likelihood\" (i.e., QLF), \"edgeR_likelihood_ratio\" (i.e., LRT), \"limma_voom\", \"limma_voom_sample_weights\", \"DESeq2\", \"glmmseq_lme4\", \"glmmseq_glmmTMB\"")
 		)
 
 	# Add results
@@ -1445,7 +1490,7 @@ such as batch effects (if applicable) in the formula.
 			tolower(method) == "limma_voom" ~ (.) %>% memorise_methods_used("voom"),
 			tolower(method) == "limma_voom_sample_weights" ~ (.) %>% memorise_methods_used("voom_sample_weights"),
 			tolower(method) == "deseq2" ~ (.) %>% memorise_methods_used("deseq2"),
-			tolower(method) %in% c("glmmseq_lme4", "glmmseq_glmmTMB") ~ (.) %>% memorise_methods_used("glmmseq"),
+			tolower(method) %in% c("glmmseq_lme4", "glmmseq_glmmtmb") ~ (.) %>% memorise_methods_used("glmmseq"),
 			~ stop("tidybulk says: method not supported")
 		) %>%
 
@@ -1544,6 +1589,7 @@ setMethod("keep_variable",
 #'
 #' @importFrom purrr map_chr
 #' @importFrom tidyr unite
+#' @importFrom Matrix colSums
 #'
 #' @docType methods
 #' @rdname keep_variable-methods
@@ -1671,7 +1717,7 @@ setMethod("keep_variable",
 			min.count = minimum_counts,
 			group = string_factor_of_interest,
 			min.prop = minimum_proportion,
-			lib.size = colSums(., na.rm=TRUE)
+			lib.size = Matrix::colSums(., na.rm=TRUE)
 		) %>%
 		not() %>%
 		which %>%

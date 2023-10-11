@@ -586,7 +586,7 @@ setMethod("scale_abundance", "tidybulk", .scale_abundance)
 #' @param .sample The name of the sample column
 #' @param .transcript The name of the transcript/gene column
 #' @param .abundance The name of the transcript/gene abundance column
-#' @param .subset_for_scaling A gene-wise quosure condition. This will be used to filter rows (features/genes) of the dataset. For example
+#' @param method A character string. Either "limma_normalize_quantiles" for limma::normalizeQuantiles or "preprocesscore_normalize_quantiles_use_target" for preprocessCore::normalize.quantiles.use.target for large-scale dataset, where limmma could not be compatible.
 #' @param action A character string between "add" (default) and "only". "add" joins the new information to the input tbl (default), "only" return a non-redundant tbl with the just new information.
 #'
 #'
@@ -620,7 +620,7 @@ setGeneric("quantile_normalise_abundance", function(.data,
                                                     .sample = NULL,
                                                     .transcript = NULL,
                                                     .abundance = NULL,
-                                                    .subset_for_scaling = NULL,
+                                                    method = "limma_normalize_quantiles",
                                                     action = "add")
   standardGeneric("quantile_normalise_abundance"))
 
@@ -629,7 +629,7 @@ setGeneric("quantile_normalise_abundance", function(.data,
                                           .sample = NULL,
                                           .transcript = NULL,
                                           .abundance = NULL,
-                                          .subset_for_scaling = NULL,
+                                          method = "limma_normalize_quantiles",
                                           action = "add")
 {
 
@@ -645,19 +645,8 @@ setGeneric("quantile_normalise_abundance", function(.data,
   .transcript = col_names$.transcript
   .abundance = col_names$.abundance
 
-  .subset_for_scaling = enquo(.subset_for_scaling)
-
   # Set column name for value scaled
   value_scaled = as.symbol(sprintf("%s%s",  quo_name(.abundance), scaled_string))
-
-
-  # Check if package is installed, otherwise install
-  if (find.package("limma", quiet = TRUE) %>% length %>% equals(0)) {
-    message("tidybulk says: Installing limma needed for analyses")
-    if (!requireNamespace("BiocManager", quietly = TRUE))
-      install.packages("BiocManager", repos = "https://cloud.r-project.org")
-    BiocManager::install("limma", ask = FALSE)
-  }
 
   # Reformat input data set
   .data_norm <-
@@ -669,8 +658,49 @@ setGeneric("quantile_normalise_abundance", function(.data,
     # Set samples and genes as factors
     dplyr::mutate(!!.sample := factor(!!.sample),!!.transcript := factor(!!.transcript))  |>
     pivot_wider(names_from = !!.sample, values_from = !!.abundance) |>
-    as_matrix(rownames=!!.transcript) |>
-    limma::normalizeQuantiles() |>
+    as_matrix(rownames=!!.transcript)
+
+
+  if(tolower(method) == "limma_normalize_quantiles"){
+
+    # Check if package is installed, otherwise install
+    if (find.package("limma", quiet = TRUE) %>% length %>% equals(0)) {
+      message("tidybulk says: Installing limma needed for analyses")
+      if (!requireNamespace("BiocManager", quietly = TRUE))
+        install.packages("BiocManager", repos = "https://cloud.r-project.org")
+      BiocManager::install("limma", ask = FALSE)
+    }
+
+    .data_norm =
+      .data_norm |>
+      limma::normalizeQuantiles()
+  }
+  else if(tolower(method) == "preprocesscore_normalize_quantiles_use_target"){
+
+    # Check if package is installed, otherwise install
+    if (find.package("preprocessCore", quiet = TRUE) %>% length %>% equals(0)) {
+      message("tidybulk says: Installing preprocessCore needed for analyses")
+      if (!requireNamespace("BiocManager", quietly = TRUE))
+        install.packages("BiocManager", repos = "https://cloud.r-project.org")
+      BiocManager::install("preprocessCore", ask = FALSE)
+    }
+
+    .data_norm_quant =
+      .data_norm |>
+      preprocessCore::normalize.quantiles.use.target(
+        target = preprocessCore::normalize.quantiles.determine.target(.data_norm)
+      )
+
+    colnames(.data_norm_quant) = .data_norm |> colnames()
+    rownames(.data_norm_quant) = .data_norm |> rownames()
+
+    .data_norm = .data_norm_quant
+    rm(.data_norm_quant)
+
+  } else stop("tidybulk says: the methods must be limma_normalize_quantiles or preprocesscore")
+
+  .data_norm =
+    .data_norm |>
     as_tibble(rownames = quo_name(.transcript)) |>
     pivot_longer(-!!.transcript, names_to = quo_name(.sample), values_to = quo_names(value_scaled)) |>
 
@@ -2830,7 +2860,7 @@ such as batch effects (if applicable) in the formula.
 			),
 
 			# glmmseq
-			tolower(method) %in% c("glmmseq_lme4", "glmmseq_glmmTMB") ~ get_differential_transcript_abundance_glmmSeq(
+			tolower(method) %in% c("glmmseq_lme4", "glmmseq_glmmtmb") ~ get_differential_transcript_abundance_glmmSeq(
 			  .,
 			  .formula,
 			  .sample = !!.sample,
@@ -2846,7 +2876,7 @@ such as batch effects (if applicable) in the formula.
 			),
 
 			# Else error
-			TRUE ~  stop("tidybulk says: the only methods supported at the moment are \"edgeR_quasi_likelihood\" (i.e., QLF), \"edgeR_likelihood_ratio\" (i.e., LRT), \"limma_voom\", \"limma_voom_sample_weights\", \"DESeq2\"")
+			TRUE ~  stop("tidybulk says: the only methods supported at the moment are \"edgeR_quasi_likelihood\" (i.e., QLF), \"edgeR_likelihood_ratio\" (i.e., LRT), \"limma_voom\", \"limma_voom_sample_weights\", \"DESeq2\", \"glmmseq_lme4\", \"glmmseq_glmmTMB\"")
 		)
 
 
@@ -3898,10 +3928,10 @@ setGeneric("test_gene_rank", function(.data,
 	}
 
 	# Get column names
-	.sample = enquo(.sample)
-	.sample =  get_sample(.data, .sample)$.sample
-	.arrange_desc = enquo(.arrange_desc)
-	.entrez = enquo(.entrez)
+  	.sample = enquo(.sample)
+  	.sample =  get_sample(.data, .sample)$.sample
+  	.arrange_desc = enquo(.arrange_desc)
+  	.entrez = enquo(.entrez)
 
 	# Check if ranking is set
 	if(quo_is_missing(.arrange_desc))
@@ -3923,13 +3953,13 @@ setGeneric("test_gene_rank", function(.data,
 		stop(sprintf("tidybulk says: wrong species name. MSigDB uses the latin species names (e.g., %s)", paste(msigdbr::msigdbr_species()$species_name, collapse=", ")))
 
 	# Check if missing entrez
-	if(.data |> filter(!!.entrez |> is.na()) |> nrow() |> gt(0) ){
+	if(.data |> filter(is.na(!!.entrez)) |> nrow() > 0 ){
 		warning("tidybulk says: there are .entrez that are NA. Those will be removed")
 		.data = .data |>	filter(!!.entrez |> is.na() |> not())
 	}
 
 	# Check if missing .arrange_desc
-	if(.data |> filter(!!.arrange_desc |> is.na()) |> nrow() |> gt(0) ){
+	if(.data |> filter(is.na(!!.arrange_desc)) |> nrow() > 0 ){
 		warning("tidybulk says: there are .arrange_desc that are NA. Those will be removed")
 		.data = .data |>	filter(!!.arrange_desc |> is.na() |> not())
 	}

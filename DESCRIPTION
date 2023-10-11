@@ -1,7 +1,7 @@
 Type: Package
 Package: tidybulk
 Title: Brings transcriptomics to the tidyverse 
-Version: 1.11.6
+Version: 1.13.1
 Authors@R: c(person("Stefano", "Mangiola", email = "mangiolastefano@gmail.com",
                   role = c("aut", "cre")),
             person("Maria", "Doyle", email = "Maria.Doyle@petermac.org",
@@ -35,7 +35,8 @@ Imports:
     GenomicRanges,
     methods,
     S4Vectors,
-    crayon
+    crayon,
+    Matrix
 Suggests:
     BiocStyle,
     testthat,
@@ -83,6 +84,7 @@ Suggests:
     pbapply,
     pbmcapply,
     lme4,
+    glmmTMB,
     MASS
 VignetteBuilder: 
     knitr
