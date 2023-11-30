@@ -1140,6 +1140,17 @@ setGeneric("reduce_dimensions", function(.data,
 	col_names = get_abundance_norm_if_exists(.data, .abundance)
 	.abundance = col_names$.abundance
 
+	# adjust top for the max number of features I have
+	if(top > .data |> distinct(!!.feature) |> nrow()){
+	  warning(sprintf(
+	    "tidybulk says: the \"top\" argument %s is higher than the number of features %s", 
+	    top, 
+	    .data |> distinct(!!.feature) |> nrow()
+	  ))
+	  
+	  top = min(top, .data |> distinct(!!.feature) |> nrow())
+	}
+	
 	# Validate data frame
 	if(do_validate()) {
 	validation(.data, !!.element, !!.feature, !!.abundance)
@@ -3927,11 +3938,17 @@ setGeneric("test_gene_rank", function(.data,
 
 	}
 
+	# DEPRECATION OF reference function
+	if (is_present(.sample) & !is.null(.sample)) {
+	  
+	  # Signal the deprecation to the user
+	  deprecate_warn("1.13.2", "tidybulk::test_gene_rank(.sample = )", details = "The argument .sample is now deprecated and not needed anymore.")
+
+	}
+	
 	# Get column names
-  	.sample = enquo(.sample)
-  	.sample =  get_sample(.data, .sample)$.sample
-  	.arrange_desc = enquo(.arrange_desc)
-  	.entrez = enquo(.entrez)
+	.arrange_desc = enquo(.arrange_desc)
+	.entrez = enquo(.entrez)
 
 	# Check if ranking is set
 	if(quo_is_missing(.arrange_desc))
@@ -3955,19 +3972,26 @@ setGeneric("test_gene_rank", function(.data,
 	# Check if missing entrez
 	if(.data |> filter(is.na(!!.entrez)) |> nrow() > 0 ){
 		warning("tidybulk says: there are .entrez that are NA. Those will be removed")
-		.data = .data |>	filter(!!.entrez |> is.na() |> not())
+		.data = .data |>	filter(is.na(!!.entrez) |> not())
 	}
 
 	# Check if missing .arrange_desc
 	if(.data |> filter(is.na(!!.arrange_desc)) |> nrow() > 0 ){
 		warning("tidybulk says: there are .arrange_desc that are NA. Those will be removed")
-		.data = .data |>	filter(!!.arrange_desc |> is.na() |> not())
+		.data = .data |>	filter(is.na(!!.arrange_desc ) |> not())
 	}
 
 	.data |>
-		pivot_transcript(!!.entrez) |>
-		arrange(desc(!!.arrange_desc)) |>
 		select(!!.entrez, !!.arrange_desc) |>
+	  distinct() |> 
+	  
+	  # Select one entrez - NEEDED?
+	  with_groups(c(!!.entrez,!!.arrange_desc ), slice, 1) |> 
+
+	  # arrange 
+	  arrange(desc(!!.arrange_desc)) |>
+	  
+	  # Format
 		deframe() |>
 		entrez_rank_to_gsea(species, gene_collections  = gene_sets ) |>
 
