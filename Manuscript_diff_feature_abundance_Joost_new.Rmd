@@ -30,9 +30,9 @@ so some "required" packages according to renv can be ignored (pick 1: Snapshot, 
 renv::snapshot()
 ```
 
-after snapshot choose option 2: Install the packages, then snapshot.
-this throws error "Error: package 'nanny' is not available"
+after snapshot choose option 1
 
+(option 2 gives error "Error: package 'nanny' is not available")
 renv might detect more requirements than necessary for this notebook
 so ignore and redo snapshot - choose 1: Snapshot, just using the currently installed packages.
 
@@ -45,8 +45,7 @@ renv::settings$use.cache() # if true renv will set to use packages from global c
 .libPaths() # check project local and global shared library paths
 ```
 
-install bunch of packages not captured by renv::snapshot() installation
-execute only once
+install bunch of packages not captured by renv::snapshot() installation - execute only once
 
 ```{r eval=FALSE}
 library(tidyverse) # added to supersede/simplify tibble dplyr magrittr requirements - some seem to conflict with GGally
@@ -56,8 +55,7 @@ install.packages("GGally")
 # install.packages("nanny")
 ```
 
-same with required bioconductor packages
-execute only once
+same with required bioconductor packages - execute only once
 
 ```{r eval=FALSE}
 
@@ -212,7 +210,7 @@ this means function adjust_abundance executes batch correction - in this case ov
 in the documentation a good example of batch correction (giving idea of when to use it) is probably important - batch correction can distort true biological signal
 a first idea for an example would be multi-site data (maybe TCGA lung squamous vs lung adenocarcinoma? normal lung controls across batches should map on top of each other? look further into this..)
 
-update: the documentation of adjust_abundance does have reference to combat..
+update: the documentation of adjust_abundance now does have reference to combat..
 
 NOTE tidybulk said it required combat for adjust_abundance - then installed sva (package w Combat) and used it for adjustment for unwanted variation
 so adjust_abundance does a batch correction on type (single vs paired end reads) in this case

@@ -21,6 +21,7 @@ egsea_report_*
 _targets.R
 _targets*
 <<<<<<< HEAD
+<<<<<<< HEAD
 tidybulk_Joost.RData
 Manuscript_diff_feature_abundance_Joost.RData
 tidybulk_joost.Rproj
@@ -33,6 +34,8 @@ cache
 .Rprofile
 =======
 <<<<<<< HEAD
+=======
+>>>>>>> master
 .DS_Store
 ._.DS_Store
 =======
@@ -41,4 +44,12 @@ Manuscript_diff_feature_abundance_Joost.RData
 tidybulk_joost.Rproj
 >>>>>>> f84425b (update)
 Tidy_genomic_and_transcriptomic_single_cell_analyses_joost.Rmd
+<<<<<<< HEAD
+>>>>>>> master
+=======
+Manuscript_diff_feature_abundance_Joost.nb.html
+Manuscript_diff_feature_abundance_Joost_cache
+Manuscript_diff_feature_abundance_Joost_files
+renv
+.Rprofile
 >>>>>>> master
