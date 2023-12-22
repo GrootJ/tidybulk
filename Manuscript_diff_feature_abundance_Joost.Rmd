@@ -26,6 +26,7 @@ I added several test tidybulk notebooks to the project (from tidybulk paper etc)
 So unlikely all packages detected by renv are used across these notebooks are true requirements for tidy-bulk to function.
 
 ```{r, eval=FALSE, echo=FALSE}
+renv::status()
 # renv::activate()
 renv::snapshot()
 ```
